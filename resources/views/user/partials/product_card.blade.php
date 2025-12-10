@@ -17,22 +17,17 @@
             @endphp
 
             <div class="h-100 w-100 d-flex align-items-center justify-content-center p-3">
-                <img src="{{ $product->image_url ? asset('storage/products/' . $product->image_url) : 'https://via.placeholder.com/400x400/f8f9fa/6c757d?text=No+Image' }}">
-                    class="product-image"
-                    style="
-                        max-width: 100%;
-                        max-height: 100%;
-                        object-fit: contain;
-                        transition: transform 0.5s ease;
-                    "
-                    alt="{{ $product->name }}"
-                    loading="lazy"
-                    onerror="
-                        if (!this.dataset.failed) {
-                            this.dataset.failed = 'true';
-                            this.src = 'https://via.placeholder.com/400x400/f8f9fa/6c757d?text=No+Image';
-                        }
-                    ">
+                <img src="{{ $product->image_url ? asset('storage/products/' . $product->image_url) : 'https://via.placeholder.com/400x400/f8f9fa/6c757d?text=No+Image' }}"
+                class="product-image"
+                style="max-width: 100%; max-height: 100%; object-fit: contain; transition: transform 0.5s ease;"
+                alt="{{ $product->name }}"
+                loading="lazy"
+                onerror="
+                    if (!this.dataset.failed) {
+                        this.dataset.failed = 'true';
+                        this.src = 'https://via.placeholder.com/400x400/f8f9fa/6c757d?text=No+Image';
+                    }
+                ">
             </div>
         </a>
 
