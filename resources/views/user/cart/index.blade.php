@@ -42,7 +42,7 @@
                                             <td class="ps-4">
                                                 <div class="d-flex align-items-center">
                                                     <div class="card border-0 shadow-sm">
-                                                        <img src="{{ $product->image_url ?? asset('images/no-image.png') }}" 
+                                                        <img src="{{ $product->image_url ? asset('storage/products/' . $product->image_url) : asset('images/no-image.png') }}" 
                                                             class="card-img-top" 
                                                             alt="{{ $product->name }}"
                                                             onerror="

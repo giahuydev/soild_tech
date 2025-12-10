@@ -113,8 +113,7 @@
                                         <tr>
                                             <td>
                                                 <div class="d-flex align-items-center">
-                                                    <img src="{{ $item->product_img_thumbnail }}" 
-                                                         alt="{{ $item->product_name }}"
+                                                    <img src="{{ asset('storage/products/' . $item->product_img_thumbnail) }}" alt="{{ $item->product_name }}">
                                                          class="rounded me-2"
                                                          style="width: 50px; height: 50px; object-fit: cover;">
                                                     <div>
