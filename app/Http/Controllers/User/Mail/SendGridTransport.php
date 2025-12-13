@@ -1,6 +1,6 @@
 <?php
 
-namespace App\User\Mail;
+namespace App\Http\Controllers\User\Mail;
 
 use Illuminate\Support\Facades\Http;
 use Symfony\Component\Mailer\SentMessage;

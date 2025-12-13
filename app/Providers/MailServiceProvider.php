@@ -2,7 +2,7 @@
 
 namespace App\Providers;
 
-use App\User\Mail\SendGridTransport;
+use App\Http\Controllers\User\Mail\SendGridTransport;  // ✅ Đổi use statement
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\ServiceProvider;
 
