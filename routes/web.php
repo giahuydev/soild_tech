@@ -101,13 +101,23 @@ Route::get('/email/verify/{id}/{hash}', function (Request $request) {
 })->middleware(['signed'])->name('verification.verify');
 
 Route::post('/email/verification-notification', function (Request $request) {
-    if ($request->user()->hasVerifiedEmail()) {
-        return back()->with('info', 'Email của bạn đã được xác thực rồi.');
+    try {
+        if (!$request->user()) {
+            return back()->with('error', 'Vui lòng đăng nhập để gửi email xác thực.');
+        }
+
+        if ($request->user()->hasVerifiedEmail()) {
+            return back()->with('info', 'Email của bạn đã được xác thực rồi.');
+        }
+
+        $request->user()->sendEmailVerificationNotification();
+
+        return back()->with('success', 'Email xác thực đã được gửi lại! Vui lòng kiểm tra hộp thư (cả Spam).');
+        
+    } catch (\Exception $e) {
+        \Log::error('Verification email error: ' . $e->getMessage());
+        return back()->with('error', 'Có lỗi khi gửi email. Vui lòng thử lại sau.');
     }
-
-    $request->user()->sendEmailVerificationNotification();
-
-    return back()->with('success', 'Email xác thực đã được gửi lại! Vui lòng kiểm tra hộp thư.');
 })->middleware(['auth', 'throttle:6,1'])->name('verification.send');
 
 Route::post('/email/resend', [LoginController::class, 'resendVerificationEmail'])
@@ -182,113 +192,7 @@ Route::post('/payment/momo/ipn', [MoMoController::class, 'ipn'])->name('momo.ipn
 Route::view('/return-policy', 'user.return_policy')->name('return.policy');
 Route::view('/about', 'user.about')->name('about');
 Route::view('/contact', 'user.contact')->name('contact');
-/*
-|--------------------------------------------------------------------------
-| PUBLIC TEST SENDGRID (TEMPORARY - XÓA SAU KHI XONG)
-|--------------------------------------------------------------------------
-*/
-Route::get('/test-mail-now', function() {
-    try {
-        $config = [
-            'default_mailer' => config('mail.default'),
-            'sendgrid_key_exists' => config('services.sendgrid.api_key') ? 'YES' : 'NO',
-            'sendgrid_key_length' => config('services.sendgrid.api_key') ? strlen(config('services.sendgrid.api_key')) : 0,
-            'from_address' => config('mail.from.address'),
-            'from_name' => config('mail.from.name'),
-        ];
-        
-        // Test gửi mail
-        \Illuminate\Support\Facades\Mail::raw(
-            'Test SendGrid from Railway - ' . now()->toDateTimeString(), 
-            function($message) {
-                $message->to('trangiahuy7676@gmail.com')
-                        ->subject('Test SendGrid - ' . now()->format('H:i:s'));
-            }
-        );
-        
-        return response()->json([
-            'status' => 'success',
-            'message' => '✅ Email sent successfully!',
-            'config' => $config,
-            'time' => now()->toDateTimeString()
-        ]);
-        
-    } catch (\Exception $e) {
-        return response()->json([
-            'status' => 'error',
-            'message' => $e->getMessage(),
-            'type' => get_class($e),
-            'file' => $e->getFile(),
-            'line' => $e->getLine(),
-            'config' => $config ?? []
-        ], 500);
-    }
-});
 
-/*
-|--------------------------------------------------------------------------
-| DEBUG ROUTES - TEST SENDGRID
-|--------------------------------------------------------------------------
-*/
-Route::get('/debug/test-sendgrid', function() {
-    // Check admin role
-    if (!Auth::check() || Auth::user()->role != 1) {
-        return response()->json(['error' => 'Admin only'], 403);
-    }
-    
-    try {
-        // 1. Display current config
-        $mailConfig = [
-            'default_mailer' => config('mail.default'),
-            'sendgrid_configured' => config('services.sendgrid.api_key') ? 'Yes (length: ' . strlen(config('services.sendgrid.api_key')) . ')' : 'No',
-            'from_address' => config('mail.from.address'),
-            'from_name' => config('mail.from.name'),
-        ];
-        
-        // 2. Check ENV variables
-        $envVars = [
-            'MAIL_MAILER' => env('MAIL_MAILER'),
-            'SENDGRID_API_KEY_SET' => env('SENDGRID_API_KEY') ? 'Yes (length: ' . strlen(env('SENDGRID_API_KEY')) . ')' : 'No',
-            'MAIL_FROM_ADDRESS' => env('MAIL_FROM_ADDRESS'),
-        ];
-        
-        // 3. Test send email
-        $startTime = microtime(true);
-        $testEmail = 'trangiahuy7676@gmail.com';
-        
-        \Illuminate\Support\Facades\Mail::raw(
-            'Test SendGrid from Railway - ' . now()->toDateTimeString() . "\n\nThis is a test email to verify SendGrid integration.", 
-            function($message) use ($testEmail) {
-                $message->to($testEmail)
-                        ->subject('✅ Test SendGrid - ' . now()->format('Y-m-d H:i:s'));
-            }
-        );
-        
-        $endTime = microtime(true);
-        $duration = round($endTime - $startTime, 2);
-        
-        return response()->json([
-            'status' => 'success',
-            'message' => "✅ Email sent successfully in {$duration}s",
-            'test_email' => $testEmail,
-            'config' => $mailConfig,
-            'env_vars' => $envVars,
-            'duration' => $duration . 's',
-            'timestamp' => now()->toDateTimeString()
-        ]);
-        
-    } catch (\Exception $e) {
-        return response()->json([
-            'status' => 'error',
-            'type' => get_class($e),
-            'message' => $e->getMessage(),
-            'file' => $e->getFile(),
-            'line' => $e->getLine(),
-            'config' => $mailConfig ?? null,
-            'env_vars' => $envVars ?? null
-        ], 500);
-    }
-});
 /*
 |--------------------------------------------------------------------------
 | ADMIN ROUTES
