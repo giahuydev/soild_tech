@@ -185,6 +185,129 @@ Route::view('/contact', 'user.contact')->name('contact');
 
 /*
 |--------------------------------------------------------------------------
+| DEBUG ROUTES - XÓA SAU KHI FIX XONG
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth'])->group(function () {
+    
+    // Test SendGrid Config & Send
+    Route::get('/debug/test-sendgrid', function() {
+        // Chỉ admin mới test được
+        if (!Auth::check() || Auth::user()->role != 1) {
+            return response()->json(['error' => 'Admin only'], 403);
+        }
+        
+        try {
+            // 1. Hiển thị config hiện tại
+            $mailConfig = [
+                'mailer' => config('mail.default'),
+                'host' => config('mail.mailers.smtp.host'),
+                'port' => config('mail.mailers.smtp.port'),
+                'username' => config('mail.mailers.smtp.username'),
+                'password_starts' => substr(config('mail.mailers.smtp.password'), 0, 10) . '...',
+                'password_length' => strlen(config('mail.mailers.smtp.password')),
+                'encryption' => config('mail.mailers.smtp.encryption'),
+                'from_address' => config('mail.from.address'),
+                'from_name' => config('mail.from.name'),
+            ];
+            
+            // 2. Kiểm tra ENV variables trực tiếp
+            $envVars = [
+                'MAIL_MAILER' => env('MAIL_MAILER'),
+                'MAIL_HOST' => env('MAIL_HOST'),
+                'MAIL_PORT' => env('MAIL_PORT'),
+                'MAIL_USERNAME' => env('MAIL_USERNAME'),
+                'MAIL_PASSWORD_STARTS' => substr(env('MAIL_PASSWORD'), 0, 10) . '...',
+                'MAIL_ENCRYPTION' => env('MAIL_ENCRYPTION'),
+                'MAIL_FROM_ADDRESS' => env('MAIL_FROM_ADDRESS'),
+            ];
+            
+            // 3. Test gửi mail
+            $startTime = microtime(true);
+            $testEmail = 'trangiahuy7676@gmail.com';
+            
+            \Illuminate\Support\Facades\Mail::raw(
+                'Test SendGrid from Railway - ' . now()->toDateTimeString(), 
+                function($message) use ($testEmail) {
+                    $message->to($testEmail)
+                            ->subject('Test SendGrid - ' . now()->format('H:i:s'));
+                }
+            );
+            
+            $endTime = microtime(true);
+            $duration = round($endTime - $startTime, 2);
+            
+            return response()->json([
+                'status' => 'success',
+                'message' => "✅ Mail sent successfully in {$duration}s",
+                'test_email' => $testEmail,
+                'config' => $mailConfig,
+                'env_vars' => $envVars,
+                'duration' => $duration . 's'
+            ]);
+            
+        } catch (\Swift_TransportException $e) {
+            return response()->json([
+                'status' => 'error',
+                'type' => 'SMTP Transport Error',
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'config' => $mailConfig ?? null,
+                'env_vars' => $envVars ?? null
+            ], 500);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'type' => get_class($e),
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => explode("\n", $e->getTraceAsString()),
+                'config' => $mailConfig ?? null,
+                'env_vars' => $envVars ?? null
+            ], 500);
+        }
+    });
+    
+    // Test SMTP Connection
+    Route::get('/debug/test-smtp-connection', function() {
+        if (!Auth::check() || Auth::user()->role != 1) {
+            return response()->json(['error' => 'Admin only'], 403);
+        }
+        
+        $host = config('mail.mailers.smtp.host');
+        $port = config('mail.mailers.smtp.port');
+        
+        $startTime = microtime(true);
+        $fp = @fsockopen($host, $port, $errno, $errstr, 10);
+        $endTime = microtime(true);
+        
+        if ($fp) {
+            fclose($fp);
+            return response()->json([
+                'status' => 'success',
+                'message' => "✅ Connection to {$host}:{$port} successful",
+                'host' => $host,
+                'port' => $port,
+                'duration' => round($endTime - $startTime, 3) . 's'
+            ]);
+        } else {
+            return response()->json([
+                'status' => 'error',
+                'message' => "❌ Connection failed: {$errstr} (errno: {$errno})",
+                'host' => $host,
+                'port' => $port,
+                'errno' => $errno,
+                'errstr' => $errstr
+            ], 500);
+        }
+    });
+});
+
+/*
+|--------------------------------------------------------------------------
 | ADMIN ROUTES
 |--------------------------------------------------------------------------
 */
