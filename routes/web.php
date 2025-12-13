@@ -193,6 +193,44 @@ Route::view('/return-policy', 'user.return_policy')->name('return.policy');
 Route::view('/about', 'user.about')->name('about');
 Route::view('/contact', 'user.contact')->name('contact');
 
+Route::get('/debug-send-verification/{email}', function($email) {
+    try {
+        $user = \App\Models\User::where('email', $email)->first();
+        
+        if (!$user) {
+            return response()->json(['error' => 'User not found']);
+        }
+        
+        // Test gửi trực tiếp
+        \Illuminate\Support\Facades\Mail::raw(
+            'Test verification email for ' . $user->name,
+            function($message) use ($user) {
+                $message->to($user->email)
+                        ->subject('Test Verification - SOLID TECH');
+            }
+        );
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Email sent to: ' . $user->email,
+            'user' => [
+                'name' => $user->name,
+                'email' => $user->email,
+                'verified' => $user->hasVerifiedEmail()
+            ]
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => $e->getMessage(),
+            'type' => get_class($e),
+            'file' => $e->getFile(),
+            'line' => $e->getLine()
+        ], 500);
+    }
+});
+
 /*
 |--------------------------------------------------------------------------
 | ADMIN ROUTES
