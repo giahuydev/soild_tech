@@ -193,6 +193,16 @@ Route::view('/return-policy', 'user.return_policy')->name('return.policy');
 Route::view('/about', 'user.about')->name('about');
 Route::view('/contact', 'user.contact')->name('contact');
 
+
+Route::get('/clear-cache-force', function() {
+    Artisan::call('config:clear');
+    Artisan::call('cache:clear');
+    Artisan::call('config:cache'); // Cache lại config mới
+    
+    return 'Cache cleared! Config: ' . config('app.url');
+});
+
+
 Route::get('/debug-verification-full/{email}', function($email) {
     try {
         $user = \App\Models\User::where('email', $email)->first();
