@@ -5,6 +5,8 @@ use App\Http\Middleware\CheckAdmin;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Artisan;  // ← DI CHUYỂN LÊN ĐÂY
+use Laravel\Socialite\Facades\Socialite; // ← DI CHUYỂN LÊN ĐÂY
 
 // ============= USER CONTROLLERS =============
 use App\Http\Controllers\User\HomeController;
@@ -193,15 +195,46 @@ Route::view('/return-policy', 'user.return_policy')->name('return.policy');
 Route::view('/about', 'user.about')->name('about');
 Route::view('/contact', 'user.contact')->name('contact');
 
-
-Route::get('/clear-cache-force', function() {
-    Artisan::call('config:clear');
-    Artisan::call('cache:clear');
-    Artisan::call('config:cache'); // Cache lại config mới
-    
-    return 'Cache cleared! Config: ' . config('app.url');
+/*
+|--------------------------------------------------------------------------
+| DEBUG ROUTES - XÓA SAU KHI FIX XONG
+|--------------------------------------------------------------------------
+*/
+Route::get('/debug-google-config', function() {
+    try {
+        return response()->json([
+            'app_url' => config('app.url'),
+            'google_client_id' => config('services.google.client_id'),
+            'google_client_secret_length' => strlen(config('services.google.client_secret') ?? ''),
+            'google_redirect' => config('services.google.redirect'),
+            'env_app_url' => env('APP_URL'),
+            'env_google_client_id' => env('GOOGLE_CLIENT_ID'),
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => $e->getMessage()
+        ], 500);
+    }
 });
 
+Route::get('/clear-cache-force', function() {
+    try {
+        Artisan::call('config:clear');
+        Artisan::call('cache:clear');
+        Artisan::call('config:cache');
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Cache cleared!',
+            'app_url' => config('app.url'),
+            'google_redirect' => config('services.google.redirect')
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => $e->getMessage()
+        ], 500);
+    }
+});
 
 Route::get('/debug-verification-full/{email}', function($email) {
     try {
@@ -211,7 +244,6 @@ Route::get('/debug-verification-full/{email}', function($email) {
             return response()->json(['error' => 'User not found']);
         }
         
-        // Kiểm tra config
         $config = [
             'queue_connection' => config('queue.default'),
             'mail_mailer' => config('mail.default'),
@@ -220,7 +252,6 @@ Route::get('/debug-verification-full/{email}', function($email) {
             'app_url' => config('app.url'),
         ];
         
-        // Test gửi
         $user->sendEmailVerificationNotification();
         
         return response()->json([
