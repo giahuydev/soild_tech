@@ -2,27 +2,13 @@
 
 return [
 
-    /*
-    |--------------------------------------------------------------------------
-    | Third Party Services
-    |--------------------------------------------------------------------------
-    |
-    | This file is for storing the credentials for third party services such
-    | as Mailgun, Postmark, AWS and more. This file provides the de facto
-    | location for this type of information, allowing packages to have
-    | a conventional file to locate the various service credentials.
-    |
-    */
-
     'postmark' => [
-
         'token' => env('POSTMARK_TOKEN'),
         'key' => env('POSTMARK_API_KEY'),
     ],
 
     'resend' => [
         'key' => env('RESEND_API_KEY'),
-
     ],
 
     'ses' => [
@@ -31,11 +17,6 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
-    'resend' => [
-        'key' => env('RESEND_KEY'),
-    ],
-
-
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
@@ -43,18 +24,15 @@ return [
         ],
     ],
 
-
-    // Google OAuth Configuration
     'google' => [
         'client_id' => env('GOOGLE_CLIENT_ID'),
         'client_secret' => env('GOOGLE_CLIENT_SECRET'),
         'redirect' => env('GOOGLE_REDIRECT_URL', env('APP_URL') . '/auth/google/callback'),
         'guzzle' => [
-        'verify' => false, // Tắt SSL verification cho local
+            'verify' => false,
         ],
     ],
 
-    // MoMo Payment Configuration
     'momo' => [
         'partner_code' => env('MOMO_PARTNER_CODE'),
         'access_key' => env('MOMO_ACCESS_KEY'),
@@ -64,7 +42,9 @@ return [
         'ipn_url' => env('MOMO_IPN_URL', env('APP_URL') . '/payment/momo/ipn'),
     ],
 
+    // ✅ THÊM PHẦN NÀY
+    'sendgrid' => [
+        'api_key' => env('SENDGRID_API_KEY'),
+    ],
+
 ];
-
-
-
