@@ -182,6 +182,48 @@ Route::post('/payment/momo/ipn', [MoMoController::class, 'ipn'])->name('momo.ipn
 Route::view('/return-policy', 'user.return_policy')->name('return.policy');
 Route::view('/about', 'user.about')->name('about');
 Route::view('/contact', 'user.contact')->name('contact');
+/*
+|--------------------------------------------------------------------------
+| PUBLIC TEST SENDGRID (TEMPORARY - XÓA SAU KHI XONG)
+|--------------------------------------------------------------------------
+*/
+Route::get('/test-mail-now', function() {
+    try {
+        $config = [
+            'default_mailer' => config('mail.default'),
+            'sendgrid_key_exists' => config('services.sendgrid.api_key') ? 'YES' : 'NO',
+            'sendgrid_key_length' => config('services.sendgrid.api_key') ? strlen(config('services.sendgrid.api_key')) : 0,
+            'from_address' => config('mail.from.address'),
+            'from_name' => config('mail.from.name'),
+        ];
+        
+        // Test gửi mail
+        \Illuminate\Support\Facades\Mail::raw(
+            'Test SendGrid from Railway - ' . now()->toDateTimeString(), 
+            function($message) {
+                $message->to('trangiahuy7676@gmail.com')
+                        ->subject('Test SendGrid - ' . now()->format('H:i:s'));
+            }
+        );
+        
+        return response()->json([
+            'status' => 'success',
+            'message' => '✅ Email sent successfully!',
+            'config' => $config,
+            'time' => now()->toDateTimeString()
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => $e->getMessage(),
+            'type' => get_class($e),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'config' => $config ?? []
+        ], 500);
+    }
+});
 
 /*
 |--------------------------------------------------------------------------
