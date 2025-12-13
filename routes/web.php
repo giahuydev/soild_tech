@@ -193,7 +193,7 @@ Route::view('/return-policy', 'user.return_policy')->name('return.policy');
 Route::view('/about', 'user.about')->name('about');
 Route::view('/contact', 'user.contact')->name('contact');
 
-Route::get('/debug-send-verification/{email}', function($email) {
+Route::get('/debug-verification-full/{email}', function($email) {
     try {
         $user = \App\Models\User::where('email', $email)->first();
         
@@ -201,21 +201,25 @@ Route::get('/debug-send-verification/{email}', function($email) {
             return response()->json(['error' => 'User not found']);
         }
         
-        // Test gửi trực tiếp
-        \Illuminate\Support\Facades\Mail::raw(
-            'Test verification email for ' . $user->name,
-            function($message) use ($user) {
-                $message->to($user->email)
-                        ->subject('Test Verification - SOLID TECH');
-            }
-        );
+        // Kiểm tra config
+        $config = [
+            'queue_connection' => config('queue.default'),
+            'mail_mailer' => config('mail.default'),
+            'sendgrid_key_length' => strlen(config('services.sendgrid.api_key')),
+            'from_address' => config('mail.from.address'),
+            'app_url' => config('app.url'),
+        ];
+        
+        // Test gửi
+        $user->sendEmailVerificationNotification();
         
         return response()->json([
             'status' => 'success',
-            'message' => 'Email sent to: ' . $user->email,
+            'message' => 'Verification sent!',
+            'config' => $config,
             'user' => [
-                'name' => $user->name,
                 'email' => $user->email,
+                'name' => $user->name,
                 'verified' => $user->hasVerifiedEmail()
             ]
         ]);
@@ -226,7 +230,8 @@ Route::get('/debug-send-verification/{email}', function($email) {
             'message' => $e->getMessage(),
             'type' => get_class($e),
             'file' => $e->getFile(),
-            'line' => $e->getLine()
+            'line' => $e->getLine(),
+            'trace' => explode("\n", $e->getTraceAsString())
         ], 500);
     }
 });
