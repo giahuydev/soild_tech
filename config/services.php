@@ -1,7 +1,6 @@
 <?php
 
 return [
-
     'postmark' => [
         'token' => env('POSTMARK_TOKEN'),
         'key' => env('POSTMARK_API_KEY'),
@@ -42,9 +41,7 @@ return [
         'ipn_url' => env('MOMO_IPN_URL', env('APP_URL') . '/payment/momo/ipn'),
     ],
 
-    // ✅ THÊM PHẦN NÀY
     'sendgrid' => [
         'api_key' => env('SENDGRID_API_KEY'),
     ],
-
 ];
