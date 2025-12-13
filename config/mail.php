@@ -97,6 +97,11 @@ return [
             'retry_after' => 60,
         ],
 
+        // ✅ THÊM SENDGRID API MAILER
+        'sendgrid_api' => [
+            'transport' => 'sendgrid_api',
+        ],
+
     ],
 
     /*
