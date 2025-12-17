@@ -213,6 +213,7 @@
 .form-check-input {
     width: 3rem;
     height: 1.5rem;
+    margin-left: -3rem;
     cursor: pointer;
 }
 
