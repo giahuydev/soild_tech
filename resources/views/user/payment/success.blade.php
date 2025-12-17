@@ -11,10 +11,25 @@
                     <p class="text-muted">Đơn hàng của bạn đã được xác nhận</p>
                     
                     <div class="mt-4 text-start">
-                        <p><strong>Mã đơn hàng:</strong> {{ $order->order_id }}</p>
-                        <p><strong>Số tiền:</strong> {{ number_format($order->amount) }} VNĐ</p>
-                        <p><strong>Nội dung:</strong> {{ $order->order_info }}</p>
-                        <p><strong>Mã giao dịch:</strong> {{ $order->trans_id }}</p>
+                        <p><strong>Mã đơn hàng:</strong> 
+                            {{ $order->order_id ?? '#' . $order->id }}
+                        </p>
+
+                        <p><strong>Số tiền:</strong> 
+                            {{ number_format($order->total_price) }} VNĐ
+                        </p>
+
+                        <p><strong>Nội dung:</strong> 
+                            {{ $order->order_info ?? 'Thanh toán đơn hàng' }}
+                        </p>
+
+                        <p><strong>Mã giao dịch:</strong> 
+                            {{ $order->trans_id ?? 'COD - Thanh toán khi nhận hàng' }}
+                        </p>
+
+                        <p><strong>Ghi chú:</strong> 
+                            {{ $order->user_note ?? 'Không có ghi chú' }}
+                        </p>
                     </div>
 
                     <a href="{{ route('home') }}" class="btn btn-primary mt-4">Về trang chủ</a>
