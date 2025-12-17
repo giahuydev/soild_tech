@@ -41,31 +41,20 @@
                                         <strong class="text-danger">{{ number_format($order->total_price) }}đ</strong>
                                     </td>
                                     <td>
-                                        @switch($order->status_order)
-                                            @case('pending')
-                                                <span class="badge bg-warning">Chờ xử lý</span>
-                                                @break
-                                            @case('completed')
-                                                <span class="badge bg-success">Hoàn thành</span>
-                                                @break
-                                            @case('failed')
-                                                <span class="badge bg-danger">Thất bại</span>
-                                                @break
-                                            @case('cancelled')
-                                                <span class="badge bg-secondary">Đã hủy</span>
-                                                @break
-                                            @default
-                                                <span class="badge bg-info">{{ $order->status_order }}</span>
-                                        @endswitch
+                                        {{-- ✅ OPTIMIZED: Sử dụng accessor --}}
+                                        <span class="badge {{ $order->status_badge_class }}">
+                                            {{ $order->status_label }}
+                                        </span>
                                     </td>
                                     <td>
-                                        @if(str_contains($order->user_address ?? '', 'MoMo'))
+                                        {{-- ✅ OPTIMIZED: Sử dụng accessor --}}
+                                        @if($order->payment_method === 'momo')
                                             <span class="badge bg-pink">
-                                                <i class="bi bi-wallet2"></i> MoMo
+                                                <i class="bi bi-wallet2"></i> {{ $order->payment_method_label }}
                                             </span>
                                         @else
                                             <span class="badge bg-success">
-                                                <i class="bi bi-cash"></i> COD
+                                                <i class="bi bi-cash"></i> {{ $order->payment_method_label }}
                                             </span>
                                         @endif
                                     </td>

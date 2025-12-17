@@ -31,44 +31,32 @@
                         <div class="col-md-6 mb-3">
                             <strong>Trạng thái đơn hàng:</strong>
                             <p class="mb-0">
-                                @switch($order->status_order)
-                                    @case('pending')
-                                        <span class="badge bg-warning">Chờ xử lý</span>
-                                        @break
-                                    @case('completed')
-                                        <span class="badge bg-success">Hoàn thành</span>
-                                        @break
-                                    @case('failed')
-                                        <span class="badge bg-danger">Thất bại</span>
-                                        @break
-                                    @case('cancelled')
-                                        <span class="badge bg-secondary">Đã hủy</span>
-                                        @break
-                                    @default
-                                        <span class="badge bg-info">{{ $order->status_order }}</span>
-                                @endswitch
+                                {{-- ✅ OPTIMIZED: Sử dụng accessor --}}
+                                <span class="badge {{ $order->status_badge_class }}">
+                                    {{ $order->status_label }}
+                                </span>
                             </p>
                         </div>
                         <div class="col-md-6 mb-3">
                             <strong>Trạng thái thanh toán:</strong>
                             <p class="mb-0">
-                                @if($order->status_payment == 'paid')
-                                    <span class="badge bg-success">Đã thanh toán</span>
-                                @else
-                                    <span class="badge bg-warning">Chưa thanh toán</span>
-                                @endif
+                                {{-- ✅ OPTIMIZED: Sử dụng accessor --}}
+                                <span class="badge {{ $order->payment_status_badge_class }}">
+                                    {{ $order->payment_status_label }}
+                                </span>
                             </p>
                         </div>
                         <div class="col-md-6 mb-3">
                             <strong>Phương thức thanh toán:</strong>
                             <p class="mb-0">
-                                @if(str_contains($order->user_address ?? '', 'MoMo'))
+                                {{-- ✅ OPTIMIZED: Sử dụng accessor --}}
+                                @if($order->payment_method === 'momo')
                                     <span class="badge" style="background-color: #a50064;">
-                                        <i class="bi bi-wallet2"></i> MoMo
+                                        <i class="bi bi-wallet2"></i> {{ $order->payment_method_label }}
                                     </span>
                                 @else
                                     <span class="badge bg-success">
-                                        <i class="bi bi-cash"></i> COD
+                                        <i class="bi bi-cash"></i> {{ $order->payment_method_label }}
                                     </span>
                                 @endif
                             </p>
@@ -113,12 +101,17 @@
                                         <tr>
                                             <td>
                                                 <div class="d-flex align-items-center">
-                                                    <img src="{{ asset('storage/products/' . $item->product_img_thumbnail) }}"
+                                                    {{-- ✅ FIX: Sử dụng accessor image_url --}}
+                                                    <img src="{{ $item->image_url }}"
                                                         alt="{{ $item->product_name }}"
                                                         class="rounded me-2"
-                                                        style="width: 50px; height: 50px; object-fit: cover;">
+                                                        style="width: 50px; height: 50px; object-fit: cover;"
+                                                        onerror="this.onerror=null; this.src='https://via.placeholder.com/50x50/f8f9fa/6c757d?text=No+Image';">
                                                     <div>
-                                                        <span class="d-block">{{ $item->product_name }}</span>
+                                                        <a href="{{ $item->getProductUrl() }}" 
+                                                           class="text-decoration-none text-dark d-block">
+                                                            {{ $item->product_name }}
+                                                        </a>
                                                         <small class="text-muted">SKU: {{ $item->product_sku }}</small>
                                                     </div>
                                                 </div>
@@ -126,9 +119,9 @@
                                             <td>{{ $item->variant_size_name }}</td>
                                             <td>{{ $item->variant_color_name }}</td>
                                             <td>{{ $item->quantity }}</td>
-                                            <td>{{ number_format($item->product_price) }}đ</td>
+                                            <td>{{ $item->formatted_price }}</td>
                                             <td class="fw-bold text-danger">
-                                                {{ number_format($item->item_total) }}đ
+                                                {{ $item->formatted_item_total }}
                                             </td>
                                         </tr>
                                     @endforeach
@@ -168,7 +161,8 @@
                 </div>
             </div>
 
-            @if($order->status_order == 'pending')
+            {{-- ✅ OPTIMIZED: Sử dụng method isPending() --}}
+            @if($order->isPending())
                 <div class="alert alert-warning mt-3">
                     <i class="bi bi-info-circle"></i>
                     <strong>Lưu ý:</strong> Đơn hàng của bạn đang được xử lý. 
