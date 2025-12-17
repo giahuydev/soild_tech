@@ -22,5 +22,13 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+
+# Keep directory structure
+!public/uploads/
+!public/uploads/products/
+!public/uploads/brands/
+public/uploads/products/*
+public/uploads/brands/*
 !public/uploads/products/.gitkeep
 !public/uploads/brands/.gitkeep
