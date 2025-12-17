@@ -1,33 +1,17 @@
+{{-- File: resources/views/user/partials/product_card.blade.php --}}
+
 <div class="product-card h-100 border-0 shadow-sm rounded-3 overflow-hidden bg-white">
     {{-- Image Section --}}
     <div class="position-relative overflow-hidden" style="height: 250px; background: #f8f9fa;">
         <a href="{{ route('shop.detail', $product->slug) }}" class="d-block h-100 w-100 text-decoration-none">
-            @php
-                // ĐƠN GIẢN: Xử lý ảnh
-                $imageFile = $product->img_thumbnail ?? '';
-                
-                if (!empty($imageFile) && file_exists(public_path('storage/products/' . $imageFile))) {
-                    // Ảnh tồn tại - dùng asset()
-                    $imageUrl = asset('storage/products/' . $imageFile);
-                } else {
-                    // Ảnh không tồn tại - dùng placeholder đơn giản
-                    $shortName = substr($product->name, 0, 12);
-                    $imageUrl = 'https://via.placeholder.com/400x400/f8f9fa/6c757d?text=' . urlencode($shortName);
-                }
-            @endphp
-
+            {{-- ✅ FIX: Sử dụng accessor image_url từ Model --}}
             <div class="h-100 w-100 d-flex align-items-center justify-content-center p-3">
-                <img src="{{ $product->image_url ? asset('storage/products/' . $product->image_url) : 'https://via.placeholder.com/400x400/f8f9fa/6c757d?text=No+Image' }}"
-                class="product-image"
-                style="max-width: 100%; max-height: 100%; object-fit: contain; transition: transform 0.5s ease;"
-                alt="{{ $product->name }}"
-                loading="lazy"
-                onerror="
-                    if (!this.dataset.failed) {
-                        this.dataset.failed = 'true';
-                        this.src = 'https://via.placeholder.com/400x400/f8f9fa/6c757d?text=No+Image';
-                    }
-                ">
+                <img src="{{ $product->image_url }}"
+                     class="product-image"
+                     style="max-width: 100%; max-height: 100%; object-fit: contain; transition: transform 0.5s ease;"
+                     alt="{{ $product->name }}"
+                     loading="lazy"
+                     onerror="this.onerror=null; this.src='https://via.placeholder.com/400x400/f8f9fa/6c757d?text=No+Image';">
             </div>
         </a>
 
@@ -46,7 +30,7 @@
     <div class="card-body p-3">
         {{-- Brand --}}
         <div class="text-muted text-uppercase small mb-1">
-            {{ $product->brand->name ?? 'SOLD TECH' }}
+            {{ $product->brand->name ?? 'SOLID TECH' }}
         </div>
 
         {{-- Product Name --}}

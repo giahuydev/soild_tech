@@ -29,16 +29,18 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        /* Alert notifications - Fixed position */
+        /* ✅ FIX: Alert notifications - Tự động tắt */
         .alert-fixed {
             position: fixed;
-            top: 80px; /* Điều chỉnh theo chiều cao header */
+            top: 80px;
             right: 20px;
             min-width: 350px;
             max-width: 500px;
             z-index: 9999 !important;
             animation: slideInRight 0.4s ease-out;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            opacity: 1;
+            transition: opacity 0.3s ease-out;
         }
 
         @keyframes slideInRight {
@@ -52,16 +54,11 @@
             }
         }
 
-        /* Smooth fade out */
+        /* ✅ FIX: Fade out animation */
         .alert-fixed.fade-out {
-            animation: fadeOut 0.3s ease-out forwards;
-        }
-
-        @keyframes fadeOut {
-            to {
-                opacity: 0;
-                transform: translateX(120%);
-            }
+            opacity: 0;
+            transform: translateX(120%);
+            transition: all 0.3s ease-out;
         }
 
         /* Back to top button */
@@ -76,6 +73,22 @@
         #back-to-top:hover {
             transform: translateY(-5px);
         }
+
+        /* ✅ THÊM: Progress bar cho alert */
+        .alert-progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            background: rgba(0,0,0,0.2);
+            width: 100%;
+            animation: progress 5s linear forwards;
+        }
+
+        @keyframes progress {
+            from { width: 100%; }
+            to { width: 0%; }
+        }
     </style>
     
     @stack('styles')
@@ -84,36 +97,40 @@
     <!-- Header -->
     @include('user.layouts.header')
 
-    <!-- Flash Messages - CHỈ Ở ĐÂY, KHÔNG Ở CHỖ KHÁC -->
+    <!-- ✅ FIX: Flash Messages - Tự động tắt sau 5 giây -->
     @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show alert-fixed" role="alert">
+        <div class="alert alert-success alert-dismissible fade show alert-fixed" role="alert" data-auto-dismiss="true">
             <i class="bi bi-check-circle-fill me-2"></i>
-            <strong>Thành công!</strong> {{ session('success') }}
+            <strong>Thành công!</strong> {!! session('success') !!}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <div class="alert-progress"></div>
         </div>
     @endif
 
     @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show alert-fixed" role="alert">
+        <div class="alert alert-danger alert-dismissible fade show alert-fixed" role="alert" data-auto-dismiss="true">
             <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            <strong>Lỗi!</strong> {{ session('error') }}
+            <strong>Lỗi!</strong> {!! session('error') !!}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <div class="alert-progress"></div>
         </div>
     @endif
 
     @if(session('warning'))
-        <div class="alert alert-warning alert-dismissible fade show alert-fixed" role="alert">
+        <div class="alert alert-warning alert-dismissible fade show alert-fixed" role="alert" data-auto-dismiss="true">
             <i class="bi bi-exclamation-circle-fill me-2"></i>
-            <strong>Cảnh báo!</strong> {{ session('warning') }}
+            <strong>Cảnh báo!</strong> {!! session('warning') !!}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <div class="alert-progress"></div>
         </div>
     @endif
 
     @if(session('info'))
-        <div class="alert alert-info alert-dismissible fade show alert-fixed" role="alert">
+        <div class="alert alert-info alert-dismissible fade show alert-fixed" role="alert" data-auto-dismiss="true">
             <i class="bi bi-info-circle-fill me-2"></i>
-            {{ session('info') }}
+            {!! session('info') !!}
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <div class="alert-progress"></div>
         </div>
     @endif
     
@@ -136,19 +153,40 @@
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     
-    <!-- Custom Scripts -->
+    <!-- ✅ FIX: Custom Scripts - Tự động tắt alerts -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Tự động ẩn alerts sau 5 giây
-            const alerts = document.querySelectorAll('.alert-fixed');
+            // ✅ FIX: Tự động ẩn alerts sau 5 giây
+            const alerts = document.querySelectorAll('.alert-fixed[data-auto-dismiss="true"]');
+            
             alerts.forEach(function(alert) {
-                setTimeout(function() {
-                    alert.classList.add('fade-out');
-                    setTimeout(function() {
-                        alert.remove();
-                    }, 300);
-                }, 5000);
+                // Set timeout để tự động ẩn
+                const autoHideTimer = setTimeout(function() {
+                    hideAlert(alert);
+                }, 5000); // 5 giây
+                
+                // Nếu user click X, hủy timer
+                const closeButton = alert.querySelector('.btn-close');
+                if (closeButton) {
+                    closeButton.addEventListener('click', function() {
+                        clearTimeout(autoHideTimer);
+                        hideAlert(alert);
+                    });
+                }
             });
+            
+            // ✅ Function ẩn alert mượt mà
+            function hideAlert(alert) {
+                // Thêm class fade-out
+                alert.classList.add('fade-out');
+                
+                // Sau 300ms (thời gian animation), xóa element khỏi DOM
+                setTimeout(function() {
+                    // Bootstrap dismiss
+                    const bsAlert = bootstrap.Alert.getOrCreateInstance(alert);
+                    bsAlert.close();
+                }, 300);
+            }
 
             // Back to top button
             const backToTop = document.getElementById('back-to-top');
@@ -161,9 +199,11 @@
                 }
             });
             
-            backToTop.addEventListener('click', function() {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            });
+            if (backToTop) {
+                backToTop.addEventListener('click', function() {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                });
+            }
         });
     </script>
     

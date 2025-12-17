@@ -39,41 +39,79 @@ class Product extends Model
     {
         return $this->hasMany(ProductVariant::class);
     }
-    // Accessor để lấy URL ảnh
+
+    /**
+     * ✅ FIX: Accessor để lấy URL ảnh - Tương thích Railway
+     * Railway không có storage persistent, nên phải xử lý đúng path
+     */
     public function getImageUrlAttribute()
-{
-    if (!$this->img_thumbnail) {
-        // Lấy ảnh từ variant nếu không có thumbnail
-        $firstVariant = $this->variants()->first();
-        if ($firstVariant && $firstVariant->image) {
-            return $this->buildImageUrl($firstVariant->image);
+    {
+        // Nếu không có ảnh -> trả về placeholder
+        if (empty($this->img_thumbnail)) {
+            return $this->getPlaceholderImage();
         }
+
+        // Nếu đã là URL đầy đủ (http/https) -> trả về luôn
+        if (filter_var($this->img_thumbnail, FILTER_VALIDATE_URL)) {
+            return $this->img_thumbnail;
+        }
+
+        // ✅ FIX: Xử lý path local
+        // Loại bỏ các prefix thừa
+        $cleanPath = $this->img_thumbnail;
+        $cleanPath = str_replace(['storage/', 'public/', 'uploads/'], '', $cleanPath);
+        
+        // Kiểm tra file tồn tại trong public/uploads/products/
+        $publicPath = public_path('uploads/products/' . basename($cleanPath));
+        if (file_exists($publicPath)) {
+            return asset('uploads/products/' . basename($cleanPath));
+        }
+
+        // Kiểm tra file trong storage/app/public/products/
+        $storagePath = storage_path('app/public/products/' . basename($cleanPath));
+        if (file_exists($storagePath)) {
+            return asset('storage/products/' . basename($cleanPath));
+        }
+
+        // Nếu không tìm thấy -> trả về placeholder
+        return $this->getPlaceholderImage();
+    }
+
+    /**
+     * Tạo placeholder image với tên sản phẩm
+     */
+    private function getPlaceholderImage()
+    {
+        $shortName = substr($this->name ?? 'Product', 0, 20);
+        return 'https://via.placeholder.com/400x400/f8f9fa/6c757d?text=' . urlencode($shortName);
+    }
+
+    /**
+     * ✅ THÊM: Helper để lấy path đầy đủ của ảnh
+     */
+    public function getFullImagePath()
+    {
+        if (empty($this->img_thumbnail)) {
+            return null;
+        }
+
+        // Nếu là URL -> không cần xử lý
+        if (filter_var($this->img_thumbnail, FILTER_VALIDATE_URL)) {
+            return null;
+        }
+
+        // Thử tìm trong public/uploads/products/
+        $publicPath = public_path('uploads/products/' . basename($this->img_thumbnail));
+        if (file_exists($publicPath)) {
+            return $publicPath;
+        }
+
+        // Thử tìm trong storage/app/public/products/
+        $storagePath = storage_path('app/public/products/' . basename($this->img_thumbnail));
+        if (file_exists($storagePath)) {
+            return $storagePath;
+        }
+
         return null;
     }
-    
-    return $this->buildImageUrl($this->img_thumbnail);
-}
-
-private function buildImageUrl($path)
-{
-    if (!$path) return null;
-    
-    // Nếu đã là URL đầy đủ
-    if (filter_var($path, FILTER_VALIDATE_URL)) {
-        return $path;
-    }
-    
-    // Nếu đã có storage/ ở đầu
-    if (str_starts_with($path, 'storage/')) {
-        return asset($path);
-    }
-    
-    // Nếu đã có products/ ở đầu
-    if (str_starts_with($path, 'products/')) {
-        return asset('storage/' . $path);
-    }
-    
-    // Nếu chỉ có tên file
-    return asset('storage/products/' . $path);
-}
 }

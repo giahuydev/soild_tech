@@ -67,6 +67,67 @@ class ProductController extends Controller
     }
 
     /**
+     * ✅ FIX: Upload ảnh đúng cách cho Railway
+     */
+    private function handleImageUpload($file)
+    {
+        try {
+            // Tạo tên file unique
+            $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+            
+            // ✅ Lưu vào public/uploads/products (persist tốt hơn trên Railway)
+            $destinationPath = public_path('uploads/products');
+            
+            // Tạo folder nếu chưa tồn tại
+            if (!File::exists($destinationPath)) {
+                File::makeDirectory($destinationPath, 0755, true);
+            }
+            
+            // Move file
+            $file->move($destinationPath, $filename);
+            
+            // Trả về path để lưu vào DB (chỉ lưu tên file)
+            return $filename;
+            
+        } catch (\Exception $e) {
+            Log::error('Image upload error: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * ✅ FIX: Xóa ảnh cũ
+     */
+    private function deleteOldImage($imagePath)
+    {
+        if (empty($imagePath)) {
+            return;
+        }
+
+        try {
+            // Nếu là URL -> không xóa
+            if (filter_var($imagePath, FILTER_VALIDATE_URL)) {
+                return;
+            }
+
+            // Xóa file trong public/uploads/products/
+            $publicPath = public_path('uploads/products/' . basename($imagePath));
+            if (File::exists($publicPath)) {
+                File::delete($publicPath);
+            }
+
+            // Xóa file trong storage/app/public/products/ (nếu có)
+            $storagePath = storage_path('app/public/products/' . basename($imagePath));
+            if (File::exists($storagePath)) {
+                File::delete($storagePath);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Delete image error: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * ✅ Xử lý thêm mới - LƯU CẢ VARIANTS TỪ FORM
      */
     public function store(Request $request)
@@ -77,7 +138,7 @@ class ProductController extends Controller
             'price' => 'required|numeric',
             'category_id' => 'required',
             'brand_id' => 'required',
-            'img_thumbnail' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'img_thumbnail' => 'required|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
             'variants' => 'nullable|array',
             'variants.*.size' => 'required_with:variants|string|max:50',
             'variants.*.color' => 'required_with:variants|string|max:50',
@@ -85,14 +146,8 @@ class ProductController extends Controller
         ], [
             'name.unique' => 'Tên sản phẩm này đã tồn tại!',
             'sku.unique' => 'Mã SKU này đã tồn tại!',
-            'name.required' => 'Vui lòng nhập tên sản phẩm!',
-            'price.required' => 'Vui lòng nhập giá sản phẩm!',
-            'category_id.required' => 'Vui lòng chọn danh mục!',
-            'brand_id.required' => 'Vui lòng chọn thương hiệu!',
             'img_thumbnail.required' => 'Vui lòng tải ảnh sản phẩm!',
-            'variants.*.size.required_with' => 'Vui lòng nhập size cho biến thể!',
-            'variants.*.color.required_with' => 'Vui lòng nhập màu sắc cho biến thể!',
-            'variants.*.quantity.required_with' => 'Vui lòng nhập số lượng cho biến thể!',
+            'img_thumbnail.max' => 'Ảnh không được quá 5MB!',
         ]);
 
         try {
@@ -103,24 +158,24 @@ class ProductController extends Controller
             $data['slug'] = Str::slug($request->name);
             $data['is_active'] = $request->has('is_active') ? 1 : 0;
 
-            // Upload ảnh
+            // ✅ Upload ảnh
             if ($request->hasFile('img_thumbnail')) {
-                $file = $request->file('img_thumbnail');
-                $filename = time() . '_' . $file->getClientOriginalName();
-                $file->move(public_path('uploads/products'), $filename);
-                $data['img_thumbnail'] = 'uploads/products/' . $filename;
+                $filename = $this->handleImageUpload($request->file('img_thumbnail'));
+                if ($filename) {
+                    $data['img_thumbnail'] = $filename;
+                }
             }
 
             $product = Product::create($data);
 
             Log::info("Đã tạo sản phẩm: {$product->name} (ID: {$product->id})");
 
-            // ✅ LƯU VARIANTS NẾU CÓ
+            // LƯU VARIANTS NẾU CÓ
             if ($request->has('variants') && is_array($request->variants)) {
                 $variantsSaved = 0;
                 
                 foreach ($request->variants as $variantData) {
-                    // Kiểm tra variant đã tồn tại chưa (size + color)
+                    // Kiểm tra variant đã tồn tại chưa
                     $exists = ProductVariant::where('product_id', $product->id)
                         ->where('size', $variantData['size'])
                         ->where('color', $variantData['color'])
@@ -150,7 +205,7 @@ class ProductController extends Controller
                 }
             }
 
-            // ✅ KHÔNG CÓ VARIANTS → REDIRECT ĐẾN TRANG EDIT
+            // KHÔNG CÓ VARIANTS → REDIRECT ĐẾN TRANG EDIT
             DB::commit();
             
             return redirect()->route('admin.products.edit', $product->id)
@@ -177,7 +232,7 @@ class ProductController extends Controller
     }
 
     /**
-     * Xử lý cập nhật
+     * ✅ Xử lý cập nhật
      */
     public function update(Request $request, $id)
     {
@@ -189,28 +244,27 @@ class ProductController extends Controller
             'price' => 'required|numeric',
             'category_id' => 'required',
             'brand_id' => 'required',
+            'img_thumbnail' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:5120',
         ], [
             'name.unique' => 'Tên sản phẩm này đã tồn tại!',
             'sku.unique' => 'Mã SKU này đã trùng với sản phẩm khác!',
-            'name.required' => 'Vui lòng nhập tên sản phẩm!',
-            'price.required' => 'Vui lòng nhập giá sản phẩm!',
+            'img_thumbnail.max' => 'Ảnh không được quá 5MB!',
         ]);
 
         $data = $request->all();
         $data['slug'] = Str::slug($request->name);
         $data['is_active'] = $request->has('is_active') ? 1 : 0;
 
-        // Upload ảnh mới (nếu có)
+        // ✅ Upload ảnh mới (nếu có)
         if ($request->hasFile('img_thumbnail')) {
             // Xóa ảnh cũ
-            if ($product->img_thumbnail && File::exists(public_path($product->img_thumbnail))) {
-                File::delete(public_path($product->img_thumbnail));
-            }
+            $this->deleteOldImage($product->img_thumbnail);
 
-            $file = $request->file('img_thumbnail');
-            $filename = time() . '_' . $file->getClientOriginalName();
-            $file->move(public_path('uploads/products'), $filename);
-            $data['img_thumbnail'] = 'uploads/products/' . $filename;
+            // Upload ảnh mới
+            $filename = $this->handleImageUpload($request->file('img_thumbnail'));
+            if ($filename) {
+                $data['img_thumbnail'] = $filename;
+            }
         }
 
         $product->update($data);
@@ -220,7 +274,7 @@ class ProductController extends Controller
     }
 
     /**
-     * Xóa sản phẩm
+     * ✅ Xóa sản phẩm
      */
     public function destroy($id)
     {
@@ -231,9 +285,7 @@ class ProductController extends Controller
             $productName = $product->name;
 
             // Xóa ảnh
-            if ($product->img_thumbnail && File::exists(public_path($product->img_thumbnail))) {
-                File::delete(public_path($product->img_thumbnail));
-            }
+            $this->deleteOldImage($product->img_thumbnail);
 
             // Xóa variants
             $product->variants()->delete();
