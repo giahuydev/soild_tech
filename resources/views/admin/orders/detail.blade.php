@@ -62,7 +62,33 @@
                             @foreach($order->orderItems as $item)
                             <tr>
                                 <td>
-                                    <img src="{{ asset($item->product_img_thumbnail) }}" width="50" class="mr-2">
+                                    @php
+                                        // Xử lý đường dẫn ảnh
+                                        $imgSrc = 'https://via.placeholder.com/50x50/f8f9fa/6c757d?text=No+Image';
+                                        
+                                        if (!empty($item->product_img_thumbnail)) {
+                                            // Nếu đã là URL đầy đủ (http/https)
+                                            if (str_starts_with($item->product_img_thumbnail, 'http')) {
+                                                $imgSrc = $item->product_img_thumbnail;
+                                            } 
+                                            // Nếu bắt đầu bằng /uploads (đường dẫn tuyệt đối)
+                                            elseif (str_starts_with($item->product_img_thumbnail, '/uploads')) {
+                                                $imgSrc = asset($item->product_img_thumbnail);
+                                            }
+                                            // Nếu chỉ là tên file
+                                            else {
+                                                $imgSrc = asset('uploads/products/' . $item->product_img_thumbnail);
+                                            }
+                                        }
+                                    @endphp
+                                    
+                                    <img src="{{ $imgSrc }}" 
+                                         width="50" 
+                                         height="50"
+                                         class="mr-2"
+                                         alt="{{ $item->product_name }}"
+                                         style="object-fit: cover; border-radius: 4px; border: 1px solid #e3e6f0;"
+                                         onerror="this.src='https://via.placeholder.com/50x50/f8f9fa/6c757d?text=No+Image'">
                                     {{ $item->product_name }}
                                 </td>
                                 <td>{{ $item->variant_size_name }}</td>

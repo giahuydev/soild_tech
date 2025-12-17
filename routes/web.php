@@ -5,8 +5,6 @@ use App\Http\Middleware\CheckAdmin;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Artisan;  // ← DI CHUYỂN LÊN ĐÂY
-use Laravel\Socialite\Facades\Socialite; // ← DI CHUYỂN LÊN ĐÂY
 
 // ============= USER CONTROLLERS =============
 use App\Http\Controllers\User\HomeController;

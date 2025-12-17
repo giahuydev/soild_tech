@@ -356,6 +356,7 @@
     width: 3rem;
     height: 1.5rem;
     cursor: pointer;
+    margin-left: -3rem;
 }
 
 .form-check-input:checked {
