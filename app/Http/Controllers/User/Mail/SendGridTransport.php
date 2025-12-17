@@ -6,7 +6,8 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\Mailer\SentMessage;
 use Symfony\Component\Mailer\Transport\AbstractTransport;
-use Symfony\Component\Mime\MessageConverter;
+use Symfony\Component\Mime\Email;
+use Symfony\Component\Mime\Address;
 
 class SendGridTransport extends AbstractTransport
 {
@@ -20,65 +21,137 @@ class SendGridTransport extends AbstractTransport
 
     protected function doSend(SentMessage $message): void
     {
-        $email = MessageConverter::toEmail($message->getOriginalMessage());
+        // ✅ FIX: Lấy email object đúng cách
+        $email = $message->getOriginalMessage();
         
+        if (!$email instanceof Email) {
+            Log::error('SendGrid: Message is not an Email instance');
+            throw new \Exception('Invalid email message');
+        }
+
+        // ✅ Build payload an toàn
+        $payload = $this->buildPayload($email);
+        
+        // ✅ Gửi request với error handling
+        $this->sendToSendGrid($payload);
+    }
+
+    /**
+     * ✅ Build SendGrid payload từ Symfony Email
+     */
+    private function buildPayload(Email $email): array
+    {
         $payload = [
             'personalizations' => [
                 [
-                    'to' => array_map(fn($addr) => [
-                        'email' => $addr->getAddress(),
-                        'name' => $addr->getName()
-                    ], $email->getTo()),
+                    'to' => $this->formatAddresses($email->getTo()),
                     'subject' => $email->getSubject(),
                 ]
             ],
-            'from' => [
-                'email' => $email->getFrom()[0]->getAddress(),
-                'name' => $email->getFrom()[0]->getName(),
-            ],
+            'from' => $this->formatAddress($email->getFrom()[0]),
             'content' => []
         ];
 
-        // Debug: Kiểm tra xem có content nào
-        Log::info('Email Body Check', [
-            'has_text' => !empty($email->getTextBody()),
-            'has_html' => !empty($email->getHtmlBody()),
-            'text_length' => $email->getTextBody() ? strlen($email->getTextBody()) : 0,
-            'html_length' => $email->getHtmlBody() ? strlen($email->getHtmlBody()) : 0,
-        ]);
-
-        // QUAN TRỌNG: text/plain TRƯỚC, text/html SAU
-        if ($email->getTextBody()) {
+        // ✅ QUAN TRỌNG: text/plain TRƯỚC, text/html SAU
+        // Xử lý text body
+        $textBody = $email->getTextBody();
+        if ($textBody) {
             $payload['content'][] = [
                 'type' => 'text/plain',
-                'value' => $email->getTextBody(),
+                'value' => $textBody,
             ];
         }
 
-        if ($email->getHtmlBody()) {
+        // Xử lý HTML body
+        $htmlBody = $email->getHtmlBody();
+        if ($htmlBody) {
             $payload['content'][] = [
                 'type' => 'text/html',
-                'value' => $email->getHtmlBody(),
+                'value' => $htmlBody,
             ];
         }
 
-        // Debug: Log payload content order
-        Log::info('SendGrid Payload Content Order', [
-            'content_types' => array_map(fn($c) => $c['type'], $payload['content'])
+        // ✅ Fallback nếu không có content
+        if (empty($payload['content'])) {
+            $payload['content'][] = [
+                'type' => 'text/plain',
+                'value' => 'Email verification from SOLID TECH',
+            ];
+        }
+
+        // Debug log
+        Log::info('SendGrid Payload Built', [
+            'to' => $payload['personalizations'][0]['to'],
+            'subject' => $payload['personalizations'][0]['subject'],
+            'content_types' => array_column($payload['content'], 'type'),
+            'has_text' => !empty($textBody),
+            'has_html' => !empty($htmlBody),
         ]);
 
-        $response = Http::withHeaders([
-            'Authorization' => 'Bearer ' . $this->apiKey,
-            'Content-Type' => 'application/json',
-        ])->post('https://api.sendgrid.com/v3/mail/send', $payload);
+        return $payload;
+    }
 
-        if (!$response->successful()) {
-            Log::error('SendGrid Error', [
-                'status' => $response->status(),
-                'body' => $response->body(),
-                'payload' => $payload
+    /**
+     * ✅ Format multiple addresses
+     */
+    private function formatAddresses(array $addresses): array
+    {
+        return array_map(function($address) {
+            return $this->formatAddress($address);
+        }, $addresses);
+    }
+
+    /**
+     * ✅ Format single address
+     */
+    private function formatAddress(Address $address): array
+    {
+        return [
+            'email' => $address->getAddress(),
+            'name' => $address->getName() ?: null,
+        ];
+    }
+
+    /**
+     * ✅ Gửi request đến SendGrid với retry
+     */
+    private function sendToSendGrid(array $payload): void
+    {
+        try {
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . $this->apiKey,
+                'Content-Type' => 'application/json',
+            ])
+            ->timeout(30)
+            ->retry(3, 1000) // Retry 3 lần, mỗi lần cách 1s
+            ->post('https://api.sendgrid.com/v3/mail/send', $payload);
+
+            if (!$response->successful()) {
+                $error = $response->json();
+                
+                Log::error('SendGrid API Error', [
+                    'status' => $response->status(),
+                    'error' => $error,
+                    'payload_to' => $payload['personalizations'][0]['to'] ?? null,
+                ]);
+                
+                throw new \Exception(
+                    'SendGrid Error: ' . ($error['errors'][0]['message'] ?? $response->body())
+                );
+            }
+
+            Log::info('SendGrid: Email sent successfully', [
+                'to' => $payload['personalizations'][0]['to'],
+                'message_id' => $response->header('X-Message-Id'),
             ]);
-            throw new \Exception('SendGrid API Error: ' . $response->body());
+            
+        } catch (\Exception $e) {
+            Log::error('SendGrid Request Failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            
+            throw $e;
         }
     }
 
