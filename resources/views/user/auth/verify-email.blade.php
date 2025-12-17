@@ -20,15 +20,6 @@
                         bằng cách nhấp vào liên kết chúng tôi vừa gửi đến email.
                     </p>
 
-                    <!-- THÔNG BÁO -->
-                    @if (session('success'))
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            <i class="bi bi-check-circle me-2"></i>
-                            {{ session('success') }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                        </div>
-                    @endif
-
                     @if (session('status') == 'verification-link-sent')
                         <div class="alert alert-success alert-dismissible fade show" role="alert">
                             <i class="bi bi-check-circle me-2"></i>

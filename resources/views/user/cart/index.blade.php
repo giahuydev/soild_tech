@@ -41,19 +41,20 @@
                                         <tr data-item-id="{{ $item->id }}">
                                             <td class="ps-4">
                                                 <div class="d-flex align-items-center">
-                                                    <div class="card border-0 shadow-sm">
-                                                        <img src="{{ $product->image_url ? asset('storage/products/' . $product->image_url) : asset('images/no-image.png') }}" 
-                                                            class="card-img-top" 
-                                                            alt="{{ $product->name }}"
-                                                            onerror="
-                                                                if (!this.dataset.failed) {
-                                                                    this.dataset.failed = 'true';
-                                                                    this.src = 'https://via.placeholder.com/600x600/f8f9fa/6c757d?text={{ urlencode($product->name) }}';
-                                                                }
-                                                            ">
-                                                        </div>
-                                                    <div class="ms-3">
-                                                        <h6 class="mb-1">{{ $product->name }}</h6>
+                                                    {{-- ✅ FIX: Chỉ dùng accessor image_url, KHÔNG thêm asset() nữa --}}
+                                                    <img src="{{ $product->image_url }}" 
+                                                         class="rounded me-3" 
+                                                         alt="{{ $product->name }}"
+                                                         style="width: 80px; height: 80px; object-fit: cover;"
+                                                         onerror="this.onerror=null; this.src='https://via.placeholder.com/80x80/f8f9fa/6c757d?text=No+Image';">
+                                                    
+                                                    <div class="ms-2">
+                                                        <h6 class="mb-1">
+                                                            <a href="{{ route('shop.detail', $product->slug) }}" 
+                                                               class="text-dark text-decoration-none">
+                                                                {{ $product->name }}
+                                                            </a>
+                                                        </h6>
                                                         <small class="text-muted">
                                                             Size: <span class="fw-bold">{{ $item->variant->size }}</span> | 
                                                             Màu: <span class="fw-bold">{{ $item->variant->color }}</span>
