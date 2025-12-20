@@ -198,64 +198,6 @@ Route::view('/return-policy', 'user.return_policy')->name('return.policy');
 Route::view('/about', 'user.about')->name('about');
 Route::view('/contact', 'user.contact')->name('contact');
 
-// TEST EMAIL - Chỉ dùng trong development
-Route::get('/test-email', function () {
-    try {
-        $testOrder = \App\Models\Order::with('orderItems')->latest()->first();
-        
-        if (!$testOrder) {
-            return 'Không có order nào để test!';
-        }
-        
-        \Illuminate\Support\Facades\Mail::to($testOrder->user_email)
-            ->send(new App\Http\Controllers\User\Mail\OrderPlaced($testOrder));
-        
-        return 'Email sent successfully to ' . $testOrder->user_email;
-        
-    } catch (\Exception $e) {
-        return 'Error: ' . $e->getMessage();
-    }
-})->middleware('auth');
-
-use Illuminate\Support\Facades\Artisan;
-
-Route::get('/clear-cache', function () {
-    Artisan::call('optimize:clear');
-
-    return 'Cache cleared successfully!';
-});
-
-
-Route::get('/test-view-exists', function () {
-    try {
-        $order = \App\Models\Order::with('orderItems')->latest()->first();
-        
-        if (!$order) {
-            return 'Không có order để test!';
-        }
-        
-        \Illuminate\Support\Facades\Log::info('Order loaded', [
-            'order_id' => $order->id,
-            'items_count' => $order->orderItems->count()
-        ]);
-        
-        // Test view có tồn tại không
-        if (view()->exists('user.emails.order-placed')) {
-            return view('user.emails.order-placed', compact('order'));
-        } else {
-            return 'View NOT FOUND: user.emails.order-placed';
-        }
-    } catch (\Exception $e) {
-        return response()->json([
-            'error' => $e->getMessage(),
-            'file' => $e->getFile(),
-            'line' => $e->getLine(),
-            'trace' => $e->getTraceAsString()
-        ], 500);
-    }
-})->middleware('auth');
-
-
 /*
 |--------------------------------------------------------------------------
 | ADMIN ROUTES
