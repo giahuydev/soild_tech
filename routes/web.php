@@ -208,7 +208,7 @@ Route::get('/test-email', function () {
         }
         
         \Illuminate\Support\Facades\Mail::to($testOrder->user_email)
-            ->send(new \App\Mail\OrderPlaced($testOrder));
+            ->send(new App\Http\Controllers\User\Mail\OrderPlaced($testOrder));
         
         return 'Email sent successfully to ' . $testOrder->user_email;
         
