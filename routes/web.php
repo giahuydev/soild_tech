@@ -227,13 +227,31 @@ Route::get('/clear-cache', function () {
 
 
 Route::get('/test-view-exists', function () {
-    $order = \App\Models\Order::with('orderItems')->latest()->first();
-    
-    // Test view có tồn tại không
-    if (view()->exists('user.emails.order-placed')) {
-        return view('user.emails.order-placed', compact('order'));
-    } else {
-        return 'View NOT FOUND: user.emails.order-placed';
+    try {
+        $order = \App\Models\Order::with('orderItems')->latest()->first();
+        
+        if (!$order) {
+            return 'Không có order để test!';
+        }
+        
+        \Illuminate\Support\Facades\Log::info('Order loaded', [
+            'order_id' => $order->id,
+            'items_count' => $order->orderItems->count()
+        ]);
+        
+        // Test view có tồn tại không
+        if (view()->exists('user.emails.order-placed')) {
+            return view('user.emails.order-placed', compact('order'));
+        } else {
+            return 'View NOT FOUND: user.emails.order-placed';
+        }
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
     }
 })->middleware('auth');
 
