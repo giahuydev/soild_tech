@@ -216,6 +216,7 @@ Route::get('/test-email', function () {
         return 'Error: ' . $e->getMessage();
     }
 })->middleware('auth');
+
 use Illuminate\Support\Facades\Artisan;
 
 Route::get('/clear-cache', function () {
@@ -223,6 +224,20 @@ Route::get('/clear-cache', function () {
 
     return 'Cache cleared successfully!';
 });
+
+
+Route::get('/test-view-exists', function () {
+    $order = \App\Models\Order::with('orderItems')->latest()->first();
+    
+    // Test view có tồn tại không
+    if (view()->exists('user.emails.order-placed')) {
+        return view('user.emails.order-placed', compact('order'));
+    } else {
+        return 'View NOT FOUND: user.emails.order-placed';
+    }
+})->middleware('auth');
+
+
 /*
 |--------------------------------------------------------------------------
 | ADMIN ROUTES
