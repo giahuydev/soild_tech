@@ -148,13 +148,15 @@
                         <div class="mb-4">
                             <label class="form-label fw-semibold">Ảnh sản phẩm</label>
                             
-                            @if($product->img_thumbnail)
+                            {{-- ✅ FIX: Sử dụng accessor image_url --}}
+                            @if($product->image_url)
                             <div class="current-image mb-3" id="currentImageSection">
                                 <p class="small text-muted mb-2">Ảnh hiện tại:</p>
                                 <div class="position-relative d-inline-block">
-                                    <img src="{{ asset($product->img_thumbnail) }}" 
+                                    <img src="{{ $product->image_url }}" 
                                          class="img-thumbnail" 
-                                         style="width: 150px; height: 150px; object-fit: cover;">
+                                         style="width: 150px; height: 150px; object-fit: cover;"
+                                         onerror="this.onerror=null; this.src='https://via.placeholder.com/150x150/f8f9fa/6c757d?text=No+Image';">
                                     <button type="button" 
                                             class="btn btn-sm btn-danger position-absolute top-0 end-0 m-2" 
                                             onclick="removeCurrentImage()">
@@ -285,11 +287,12 @@
                                         <td>
                                             <form action="{{ route('admin.product_variants.destroy', $variant->id) }}" 
                                                   method="POST" 
-                                                  class="d-inline"
-                                                  onsubmit="return confirm('Xóa biến thể Size: {{ $variant->size }}, Màu: {{ $variant->color }}?')">
+                                                  class="d-inline variant-delete-form">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <button type="submit" 
+                                                        class="btn btn-sm btn-outline-danger"
+                                                        data-variant="Size: {{ $variant->size }}, Màu: {{ $variant->color }}">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                             </form>
@@ -313,28 +316,46 @@
 
         <!-- Right Column -->
         <div class="col-lg-4">
-            <!-- Thống kê -->
+            <!-- Thống kê - ✅ FIX: Cải thiện UI -->
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body p-4">
                     <h6 class="fw-bold mb-3">
                         <i class="fas fa-chart-bar text-primary me-2"></i>Thống kê
                     </h6>
-                    <div class="mb-3 pb-3 border-bottom">
-                        <small class="text-muted d-block mb-1">Tổng số biến thể</small>
-                        <h4 class="mb-0 text-primary">{{ $product->variants->count() }}</h4>
+                    
+                    {{-- ✅ FIX: Card với background gradient đẹp --}}
+                    <div class="stats-card bg-gradient-primary text-white mb-3 p-3 rounded">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="d-block mb-1 opacity-75">Tổng số biến thể</small>
+                                <h3 class="mb-0 fw-bold">{{ $product->variants->count() }}</h3>
+                            </div>
+                            <div class="stats-icon">
+                                <i class="fas fa-boxes fa-2x opacity-50"></i>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mb-3 pb-3 border-bottom">
-                        <small class="text-muted d-block mb-1">Tổng tồn kho</small>
-                        <h4 class="mb-0 text-success">{{ $product->variants->sum('quantity') }}</h4>
+                    
+                    <div class="stats-card bg-gradient-success text-white mb-3 p-3 rounded">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="d-block mb-1 opacity-75">Tổng tồn kho</small>
+                                <h3 class="mb-0 fw-bold">{{ $product->variants->sum('quantity') }}</h3>
+                            </div>
+                            <div class="stats-icon">
+                                <i class="fas fa-warehouse fa-2x opacity-50"></i>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <small class="text-muted d-block mb-1">Trạng thái</small>
+                    
+                    <div class="mb-0">
+                        <small class="text-muted d-block mb-2">Trạng thái hiển thị</small>
                         @if($product->is_active)
-                            <span class="badge bg-success px-3 py-2">
+                            <span class="badge bg-success px-3 py-2 w-100">
                                 <i class="fas fa-check-circle me-1"></i>Đang hiển thị
                             </span>
                         @else
-                            <span class="badge bg-secondary px-3 py-2">
+                            <span class="badge bg-secondary px-3 py-2 w-100">
                                 <i class="fas fa-eye-slash me-1"></i>Đang ẩn
                             </span>
                         @endif
@@ -359,7 +380,7 @@
                 </div>
             </div>
 
-            <!-- Danger Zone -->
+            <!-- Danger Zone - ✅ FIX: Thêm JavaScript xử lý xóa -->
             <div class="card border-danger">
                 <div class="card-body p-4 text-center">
                     <i class="fas fa-exclamation-triangle fa-2x text-danger mb-3"></i>
@@ -367,7 +388,7 @@
                     <p class="text-muted small mb-3">Hành động này không thể hoàn tác</p>
                     <form action="{{ route('admin.products.destroy', $product->id) }}" 
                           method="POST" 
-                          onsubmit="return confirm('Bạn có chắc chắn muốn xóa sản phẩm này vĩnh viễn?')">
+                          id="deleteProductForm">
                         @csrf
                         @method('DELETE')
                         <button type="submit" class="btn btn-sm btn-outline-danger w-100">
@@ -393,6 +414,7 @@
     width: 3rem;
     height: 1.5rem;
     cursor: pointer;
+    margin-left: -3rem;
 }
 
 .form-check-input:checked {
@@ -409,9 +431,34 @@
 .table-hover tbody tr:hover {
     background-color: #f8f9fa;
 }
+
+/* ✅ FIX: Stats Card với gradient đẹp */
+.stats-card {
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s;
+}
+
+.stats-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+}
+
+.bg-gradient-success {
+    background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);
+}
+
+.stats-icon {
+    font-size: 2rem;
+}
 </style>
 
 <script>
+// ✅ FIX: Preview ảnh mới
 function previewNewImage(input) {
     const preview = document.getElementById('newPreviewImg');
     const container = document.getElementById('newImagePreview');
@@ -430,6 +477,7 @@ function previewNewImage(input) {
     }
 }
 
+// ✅ FIX: Xóa ảnh hiện tại
 function removeCurrentImage() {
     if (confirm('Bạn có chắc muốn xóa ảnh hiện tại?')) {
         document.getElementById('currentImageSection').style.display = 'none';
@@ -437,7 +485,7 @@ function removeCurrentImage() {
     }
 }
 
-// Form validation
+// ✅ FIX: Validation form
 document.getElementById('productForm').addEventListener('submit', function(e) {
     const price = parseInt(document.getElementById('priceInput').value) || 0;
     const priceSale = parseInt(document.getElementById('priceSaleInput').value) || 0;
@@ -447,6 +495,34 @@ document.getElementById('productForm').addEventListener('submit', function(e) {
         alert('Giá khuyến mãi phải nhỏ hơn giá bán thường!');
         return false;
     }
+});
+
+// ✅ FIX: Xóa variant với confirm
+document.querySelectorAll('.variant-delete-form').forEach(form => {
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        var variantInfo = this.querySelector('button').dataset.variant;
+        var message = 'Bạn có chắc muốn xóa biến thể?\n\n' + variantInfo;
+        
+        if (confirm(message)) {
+            this.submit();
+        }
+    });
+});
+
+// ✅ FIX: Xóa variant với confirm
+document.querySelectorAll('.variant-delete-form').forEach(form => {
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const variantInfo = this.querySelector('button').dataset.variant;
+        const message = `Bạn có chắc muốn xóa biến thể?\n\n${variantInfo}`;
+        
+        if (confirm(message)) {
+            this.submit();
+        }
+    });
 });
 </script>
 @endsection

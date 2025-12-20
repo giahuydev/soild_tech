@@ -48,20 +48,25 @@ Route::get('auth/google/callback', [GoogleController::class, 'handleGoogleCallba
 
 /*
 |--------------------------------------------------------------------------
-| FORGOT PASSWORD
+| FORGOT PASSWORD - ✅ FIXED
 |--------------------------------------------------------------------------
 */
+// ✅ Hiển thị form "Quên mật khẩu" - Chỉ cho guest
 Route::get('/forgot-password', [ForgotPasswordController::class, 'showLinkRequestForm']) 
     ->middleware('guest')->name('password.request');
 
+// ✅ Gửi email reset link - Chỉ cho guest
 Route::post('/forgot-password', [ForgotPasswordController::class, 'sendResetLinkEmail'])
     ->middleware('guest')->name('password.email');
 
-Route::get('/password/reset/{token}', [ForgotPasswordController::class, 'showResetForm']) 
-    ->middleware('guest')->name('password.reset');
+// ✅ FIX CHÍNH: Hiển thị form reset password - BỎ middleware 'guest'
+// Thêm logic logout tự động trong Controller
+Route::get('/password/reset/{token}', [ForgotPasswordController::class, 'showResetForm'])
+    ->name('password.reset');
 
+// ✅ Xử lý reset password - BỎ middleware 'guest'
 Route::post('/reset-password', [ForgotPasswordController::class, 'reset'])
-    ->middleware('guest')->name('password.update');
+    ->name('password.update');
 
 /*
 |--------------------------------------------------------------------------
