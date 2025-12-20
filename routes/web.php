@@ -216,7 +216,13 @@ Route::get('/test-email', function () {
         return 'Error: ' . $e->getMessage();
     }
 })->middleware('auth');
+use Illuminate\Support\Facades\Artisan;
 
+Route::get('/clear-cache', function () {
+    Artisan::call('optimize:clear');
+
+    return 'Cache cleared successfully!';
+});
 /*
 |--------------------------------------------------------------------------
 | ADMIN ROUTES
