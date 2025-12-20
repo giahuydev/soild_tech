@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Cart;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Mail\OrderPlaced;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class MoMoController extends Controller
 {
@@ -131,11 +133,17 @@ class MoMoController extends Controller
             DB::commit();
 
             if ($request->payment_method === 'momo') {
+                // MoMo sẽ gửi email sau khi thanh toán thành công (trong callback)
                 return $this->createMoMoPayment($order);
             } else {
+                // COD: Gửi email ngay lập tức
+                $this->sendOrderConfirmationEmail($order);
+                
+                // Xóa giỏ hàng
                 $cart->items()->delete();
+                
                 return redirect()->route('payment.success', $order->id)
-                    ->with('success', 'Đặt hàng thành công! Chúng tôi sẽ liên hệ với bạn sớm.');
+                    ->with('success', 'Đặt hàng thành công! Chúng tôi đã gửi email xác nhận đến ' . $order->user_email);
             }
             
         } catch (\Exception $e) {
@@ -145,6 +153,33 @@ class MoMoController extends Controller
                 'trace' => $e->getTraceAsString()
             ]);
             return back()->withInput()->with('error', 'Có lỗi xảy ra. Vui lòng thử lại!');
+        }
+    }
+
+    /**
+     * Gửi email xác nhận đơn hàng
+     */
+    private function sendOrderConfirmationEmail($order)
+    {
+        try {
+            // Load relationship để tránh N+1 query
+            $order->load('orderItems');
+            
+            // Gửi email
+            Mail::to($order->user_email)->send(new OrderPlaced($order));
+            
+            Log::info('Order confirmation email sent', [
+                'order_id' => $order->id,
+                'email' => $order->user_email
+            ]);
+            
+        } catch (\Exception $e) {
+            // Không throw exception để không ảnh hưởng đến flow đặt hàng
+            Log::error('Failed to send order confirmation email', [
+                'order_id' => $order->id,
+                'email' => $order->user_email,
+                'error' => $e->getMessage()
+            ]);
         }
     }
 
@@ -269,6 +304,7 @@ class MoMoController extends Controller
         }
 
         if ($resultCode == 0) {
+            // ✅ Thanh toán thành công
             $order->update([
                 'status_order'   => 'pending',
                 'status_payment' => 'paid',
@@ -276,15 +312,21 @@ class MoMoController extends Controller
                 'response_data'  => json_encode($request->all()),
             ]);
             
+            // Xóa giỏ hàng
             $cart = Cart::where('user_id', $order->user_id)->first();
             if ($cart) {
                 $cart->items()->delete();
             }
             
+            // ✅ GỬI EMAIL XÁC NHẬN ĐƠN HÀNG
+            $this->sendOrderConfirmationEmail($order);
+            
             Log::info('Payment Success', ['order_id' => $order->id]);
             
-            return redirect()->route('payment.success', $order->id);
+            return redirect()->route('payment.success', $order->id)
+                ->with('success', 'Thanh toán thành công! Chúng tôi đã gửi email xác nhận đến ' . $order->user_email);
         } else {
+            // ❌ Thanh toán thất bại - hoàn lại số lượng
             foreach ($order->orderItems as $orderItem) {
                 $orderItem->variant->increment('quantity', $orderItem->quantity);
             }
@@ -324,6 +366,7 @@ class MoMoController extends Controller
         }
 
         if ($resultCode == 0) {
+            // ✅ Thanh toán thành công
             $order->update([
                 'status_order'   => 'pending',
                 'status_payment' => 'paid',
@@ -331,11 +374,17 @@ class MoMoController extends Controller
                 'response_data'  => json_encode($request->all()),
             ]);
             
+            // Xóa giỏ hàng
             $cart = Cart::where('user_id', $order->user_id)->first();
             if ($cart) {
                 $cart->items()->delete();
             }
+            
+            // ✅ GỬI EMAIL (nếu chưa gửi trong callback)
+            $this->sendOrderConfirmationEmail($order);
+            
         } else {
+            // ❌ Thanh toán thất bại - hoàn lại số lượng
             foreach ($order->orderItems as $orderItem) {
                 $orderItem->variant->increment('quantity', $orderItem->quantity);
             }
