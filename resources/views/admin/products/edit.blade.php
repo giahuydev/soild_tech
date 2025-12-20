@@ -274,7 +274,7 @@
                                     <tr>
                                         <td class="fw-bold text-muted">{{ $index + 1 }}</td>
                                         <td>
-                                            <span class="badge bg-secondary">{{ $variant->size }}</span>
+                                            <span class="badge">{{ $variant->size }}</span>
                                         </td>
                                         <td>{{ $variant->color }}</td>
                                         <td>
