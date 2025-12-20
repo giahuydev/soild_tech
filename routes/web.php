@@ -198,6 +198,25 @@ Route::view('/return-policy', 'user.return_policy')->name('return.policy');
 Route::view('/about', 'user.about')->name('about');
 Route::view('/contact', 'user.contact')->name('contact');
 
+// TEST EMAIL - Chỉ dùng trong development
+Route::get('/test-email', function () {
+    try {
+        $testOrder = \App\Models\Order::with('orderItems')->latest()->first();
+        
+        if (!$testOrder) {
+            return 'Không có order nào để test!';
+        }
+        
+        \Illuminate\Support\Facades\Mail::to($testOrder->user_email)
+            ->send(new \App\Mail\OrderPlaced($testOrder));
+        
+        return 'Email sent successfully to ' . $testOrder->user_email;
+        
+    } catch (\Exception $e) {
+        return 'Error: ' . $e->getMessage();
+    }
+})->middleware('auth');
+
 /*
 |--------------------------------------------------------------------------
 | ADMIN ROUTES
