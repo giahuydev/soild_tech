@@ -215,7 +215,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // ✅ DATA: Tất cả variants từ server
-    const allVariants = @json($product->variants);
+   const allVariants = @json($product->variants->values()->toArray());
     
     // ✅ STATE
     let selectedColor = null;
