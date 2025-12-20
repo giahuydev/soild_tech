@@ -101,12 +101,15 @@
                                         <tr>
                                             <td>
                                                 <div class="d-flex align-items-center">
-                                                    {{-- ✅ FIX: Sử dụng accessor image_url --}}
-                                                    <img src="{{ $item->image_url }}"
-                                                        alt="{{ $item->product_name }}"
-                                                        class="rounded me-2"
-                                                        style="width: 50px; height: 50px; object-fit: cover;"
-                                                        onerror="this.onerror=null; this.src='https://via.placeholder.com/50x50/f8f9fa/6c757d?text=No+Image';">
+                                                    <img src="{{ $item->product_img_thumbnail 
+                                                            ? (str_starts_with($item->product_img_thumbnail, 'http') 
+                                                                ? $item->product_img_thumbnail 
+                                                                : asset('uploads/products/' . $item->product_img_thumbnail))
+                                                            : 'https://via.placeholder.com/50x50/f8f9fa/6c757d?text=No+Image' }}"
+                                                    alt="{{ $item->product_name }}"
+                                                    class="rounded me-2"
+                                                    style="width: 50px; height: 50px; object-fit: cover;"
+                                                    onerror="this.onerror=null; this.src='https://via.placeholder.com/50x50/f8f9fa/6c757d?text=No+Image';">
                                                     <div>
                                                         <a href="{{ $item->getProductUrl() }}" 
                                                            class="text-decoration-none text-dark d-block">
