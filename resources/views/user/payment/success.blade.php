@@ -7,7 +7,7 @@
             <div class="card shadow-sm">
                 <div class="card-body p-5">
                     <i class="bi bi-check-circle text-success" style="font-size: 80px;"></i>
-                    <h2 class="mt-3">Thanh toán thành công!</h2>
+                    <h2 class="mt-3">Đặt hàng thành công!</h2>
                     <p class="text-muted">Đơn hàng của bạn đã được xác nhận</p>
                     
                     <div class="mt-4 text-start">
